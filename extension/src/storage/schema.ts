@@ -12,6 +12,11 @@ export const MemorySchema = z.object({
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   embedding: z.array(z.number()).optional(),
+  // Phase 2 fields
+  linkedMemoryIds: z.array(z.string().uuid()).optional(),
+  commitHash: z.string().optional(),
+  stalenessStatus: z.enum(['fresh', 'stale', 'unknown']).optional(),
+  stalenessCheckedAt: z.string().datetime().optional(),
 });
 export type Memory = z.infer<typeof MemorySchema>;
 
@@ -44,7 +49,7 @@ export const SearchResultSchema = z.object({
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 
 export const DatabaseSchema = z.object({
-  version: z.literal(1),
+  version: z.union([z.literal(1), z.literal(2)]),
   memories: z.array(MemorySchema),
   summaries: z.record(z.string(), RepoSummarySchema),
   searchIndex: z.string().optional(),
@@ -53,8 +58,33 @@ export type Database = z.infer<typeof DatabaseSchema>;
 
 export function emptyDatabase(): Database {
   return {
-    version: 1,
+    version: 2,
     memories: [],
     summaries: {},
   };
 }
+
+// Phase 2 view types
+export type TimelineEntry = {
+  id: string;
+  type: Memory['type'];
+  title: string;
+  createdAt: string;
+  tags: string[];
+  filePath?: string;
+  stalenessStatus?: Memory['stalenessStatus'];
+  linkedCount: number;
+};
+
+export type MemoryDetail = {
+  memory: Memory;
+  linkedMemories: Array<{ id: string; title: string; type: string; createdAt: string }>;
+};
+
+export type StalenessReport = {
+  total: number;
+  fresh: number;
+  stale: number;
+  unknown: number;
+  staleMemories: Array<{ id: string; title: string; filePath?: string }>;
+};

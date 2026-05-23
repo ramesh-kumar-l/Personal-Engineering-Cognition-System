@@ -2,7 +2,7 @@
   "name": "pecs",
   "displayName": "PECS – Personal Engineering Cognition System",
   "description": "AI-native repo understanding, engineering memory, and semantic search",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "publisher": "pecs-dev",
   "private": true,
   "engines": {
@@ -128,6 +128,22 @@
       {
         "command": "pecs.clearCache",
         "title": "PECS: Clear Repo Summary Cache"
+      },
+      {
+        "command": "pecs.exportMemories",
+        "title": "PECS: Export Memories to Markdown"
+      },
+      {
+        "command": "pecs.linkMemory",
+        "title": "PECS: Link Two Memories"
+      },
+      {
+        "command": "pecs.viewTimeline",
+        "title": "PECS: View Memory Timeline"
+      },
+      {
+        "command": "pecs.checkStaleness",
+        "title": "PECS: Check Memory Staleness"
       }
     ],
     "viewsContainers": {

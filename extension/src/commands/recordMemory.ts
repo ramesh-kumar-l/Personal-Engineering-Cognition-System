@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 import type { MemoryStore } from '../storage/MemoryStore';
 import type { SearchEngine } from '../search/SearchEngine';
+import type { ProvenanceTracker } from '../memory/ProvenanceTracker';
 import type { Memory } from '../storage/schema';
-import { getWorkspaceId } from '../utils/config';
+import { getWorkspaceId, getWorkspaceRoot } from '../utils/config';
 
 const MEMORY_TYPES: Array<{ label: string; value: Memory['type']; description: string }> = [
   { label: '$(debug-alt) Debug', value: 'debug', description: 'A debugging session, issue, and resolution' },
@@ -14,7 +15,8 @@ const MEMORY_TYPES: Array<{ label: string; value: Memory['type']; description: s
 
 export function registerRecordMemory(
   memoryStore: MemoryStore,
-  searchEngine: SearchEngine
+  searchEngine: SearchEngine,
+  provenanceTracker: ProvenanceTracker
 ): vscode.Disposable {
   return vscode.commands.registerCommand('pecs.recordMemory', async () => {
     const editor = vscode.window.activeTextEditor;
@@ -52,6 +54,9 @@ export function registerRecordMemory(
     }
 
     const workspaceId = getWorkspaceId();
+    const workspaceRoot = getWorkspaceRoot();
+    const commitHash = workspaceRoot ? provenanceTracker.captureCommitHash(workspaceRoot) : undefined;
+
     const memory = await memoryStore.add({
       workspaceId,
       type: picked.value,
@@ -60,6 +65,7 @@ export function registerRecordMemory(
       tags,
       filePath,
       lineRange,
+      commitHash,
     });
 
     // Generate and store embedding if provider supports it

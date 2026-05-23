@@ -1,9 +1,33 @@
 # Phase Status
 
-## Current Phase: Phase 1 — VSCode Repo Cognition Engine
+## Phase 2 — Persistent Engineering Memory (Enhanced)
 
-**Started:** 2026-05-23
-**Status:** In Progress
+**Completed:** 2026-05-23
+**Status:** Done ✓
+
+### Deliverables
+- [x] Schema v2: `linkedMemoryIds`, `commitHash`, `stalenessStatus`, `stalenessCheckedAt` fields
+- [x] v1→v2 migration in StorageManager (zero-downtime, backward-compatible)
+- [x] `MemoryLinker` — bidirectional memory linking with deduplication guard
+- [x] `ProvenanceTracker` — captures git commit hash at memory creation
+- [x] `StalenessDetector` — file-existence + line-diff staleness check via git
+- [x] `exportMemories` command — filtered Markdown export with save dialog
+- [x] `linkMemory` command — quick-pick linking flow
+- [x] `viewTimeline` command — chronological timeline pushed to webview
+- [x] `checkStaleness` command — batch staleness scan with report
+- [x] Webview Phase 2 UI: tab bar (Search/Timeline), memory detail view, staleness indicators
+- [x] `recordMemory` updated to capture git commit hash automatically
+- [x] `extension.ts` wires all Phase 2 modules; routes `openMemoryDetail`/`linkFromDetail` messages
+- [x] 13 new unit tests (MemoryLinker 7, ProvenanceTracker 2, StalenessDetector 4)
+- [x] Build passes (dist/extension.js 1.1MB, dist/webview.js 11.5KB)
+- [x] 53/53 tests pass
+
+---
+
+## Phase 1 — VSCode Repo Cognition Engine
+
+**Completed:** 2026-05-23
+**Status:** Done ✓
 
 ### Completed
 

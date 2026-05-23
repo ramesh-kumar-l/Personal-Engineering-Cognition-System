@@ -25,13 +25,13 @@
 
 ---
 
-## Phase 2 — Persistent Engineering Memory (Enhanced)
+## Phase 2 — Persistent Engineering Memory (Enhanced) ✓ COMPLETE
 
-- Memory tagging, categorization, linking
-- Memory timeline view
-- Export to Markdown
-- Memory provenance tracking (which file, which commit)
-- Conflict/staleness detection
+- [x] Memory linking (bidirectional, MemoryLinker)
+- [x] Memory timeline view (webview tab, grouped by date)
+- [x] Export to Markdown (with type filter, save dialog)
+- [x] Memory provenance tracking (git commit hash captured on record)
+- [x] Conflict/staleness detection (file-existence + line-diff via git)
 
 ## Phase 3 — Semantic Retrieval + Hybrid Search (Advanced)
 

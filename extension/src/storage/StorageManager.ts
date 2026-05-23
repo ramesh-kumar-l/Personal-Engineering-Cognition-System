@@ -22,6 +22,11 @@ export class StorageManager {
       const result = DatabaseSchema.safeParse(parsed);
       if (result.success) {
         this.db = result.data;
+        if (this.db.version === 1) {
+          // Migrate v1 → v2: bump version, new fields are all optional so data is already valid
+          (this.db as { version: number }).version = 2;
+          this.scheduleFlush();
+        }
         return this.db;
       }
     } catch {
