@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import { generateNonce } from '../utils/config';
 import type {
   RepoSummary, SearchResult, TimelineEntry, MemoryDetail, StalenessReport,
-  WorkflowListItem, WorkflowRun,
+  WorkflowListItem, WorkflowRun, CapabilitySnapshot,
 } from '../storage/schema';
 
 export type ExtensionToWebview =
@@ -14,6 +14,7 @@ export type ExtensionToWebview =
   | { type: 'workflowList'; payload: WorkflowListItem[] }
   | { type: 'workflowDetail'; payload: import('../storage/schema').WorkflowDetail }
   | { type: 'workflowProgress'; payload: WorkflowRun }
+  | { type: 'capabilityReport'; payload: { markdown: string; snapshot: CapabilitySnapshot } }
   | { type: 'loading'; payload: { message: string } }
   | { type: 'error'; payload: { message: string } }
   | { type: 'memoryRecorded'; payload: { title: string } }
@@ -343,6 +344,44 @@ export class PecsPanel implements vscode.WebviewViewProvider {
       text-overflow: ellipsis;
       white-space: nowrap;
     }
+
+    /* Capability report styles */
+    .capability-markdown {
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .capability-markdown h1 { font-size: 14px; margin-bottom: 4px; }
+    .capability-markdown h2 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--vscode-sideBarSectionHeader-foreground);
+      margin: 14px 0 4px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      padding-bottom: 2px;
+    }
+    .capability-markdown h3 {
+      font-size: 11px;
+      font-weight: 600;
+      margin: 8px 0 3px;
+      color: var(--vscode-foreground);
+    }
+    .capability-markdown table { width: 100%; border-collapse: collapse; margin: 4px 0; }
+    .capability-markdown td, .capability-markdown th {
+      padding: 3px 6px;
+      border: 1px solid var(--vscode-panel-border);
+      font-size: 11px;
+    }
+    .capability-markdown th {
+      background: var(--vscode-textCodeBlock-background);
+      font-weight: 600;
+    }
+    .capability-markdown ul { padding-left: 16px; margin: 4px 0; }
+    .capability-markdown li { margin: 2px 0; }
+    .capability-markdown em { color: var(--vscode-descriptionForeground); }
+    .capability-markdown strong { font-weight: 600; }
+    .capability-markdown p { margin: 4px 0; }
   </style>
 </head>
 <body>
@@ -350,6 +389,7 @@ export class PecsPanel implements vscode.WebviewViewProvider {
     <button class="tab active" data-tab="search">Search</button>
     <button class="tab" data-tab="timeline">Timeline</button>
     <button class="tab" data-tab="workflows">Playbooks</button>
+    <button class="tab" data-tab="capabilities">Capabilities</button>
   </div>
 
   <div id="search-tab">
@@ -372,6 +412,15 @@ export class PecsPanel implements vscode.WebviewViewProvider {
   <div id="workflows-tab" style="display:none">
     <div id="workflows-content">
       <div class="empty-state">Run <strong>PECS: List Workflows</strong> to load playbooks.</div>
+    </div>
+  </div>
+
+  <div id="capabilities-tab" style="display:none">
+    <div id="capabilities-content">
+      <div class="empty-state">
+        Run <strong>PECS: Track Capabilities</strong> then<br>
+        <strong>PECS: View Capability Report</strong> to see your engineering profile.
+      </div>
     </div>
   </div>
 

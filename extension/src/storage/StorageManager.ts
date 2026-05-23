@@ -22,12 +22,13 @@ export class StorageManager {
       const result = DatabaseSchema.safeParse(parsed);
       if (result.success) {
         this.db = result.data;
-        if (this.db.version === 1 || this.db.version === 2 || this.db.version === 3) {
-          // Migrate v1/v2/v3 → v4: add workflows array (Phase 4 addition)
-          if (!('workflows' in this.db)) {
-            (this.db as { workflows: unknown[] }).workflows = [];
-          }
-          (this.db as { version: number }).version = 4;
+        if (this.db.version < 5) {
+          // Migrate v1/v2/v3/v4 → v5: add workflows, technologies, capabilitySnapshots
+          const raw = this.db as Record<string, unknown>;
+          if (!Array.isArray(raw['workflows'])) raw['workflows'] = [];
+          if (!Array.isArray(raw['technologies'])) raw['technologies'] = [];
+          if (!Array.isArray(raw['capabilitySnapshots'])) raw['capabilitySnapshots'] = [];
+          (this.db as { version: number }).version = 5;
           this.scheduleFlush();
         }
         return this.db;

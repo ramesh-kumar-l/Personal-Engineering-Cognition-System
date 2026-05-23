@@ -1,7 +1,7 @@
 import type { ExtensionToWebview, WebviewToExtension } from '../PecsPanel';
 import type {
   RepoSummary, SearchResult, TimelineEntry, MemoryDetail, StalenessReport,
-  WorkflowListItem, WorkflowRun, Workflow,
+  WorkflowListItem, WorkflowRun, Workflow, CapabilitySnapshot,
 } from '../../storage/schema';
 
 declare function acquireVsCodeApi(): {
@@ -17,15 +17,17 @@ const vscode = acquireVsCodeApi();
 const searchTab = document.getElementById('search-tab')!;
 const timelineTab = document.getElementById('timeline-tab')!;
 const workflowsTab = document.getElementById('workflows-tab')!;
+const capabilitiesTab = document.getElementById('capabilities-tab')!;
 const detailView = document.getElementById('detail-view')!;
 const app = document.getElementById('app')!;
 const timelineContent = document.getElementById('timeline-content')!;
 const workflowsContent = document.getElementById('workflows-content')!;
+const capabilitiesContent = document.getElementById('capabilities-content')!;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 
 // ─── Tab navigation ──────────────────────────────────────────────────────────
 
-type ActiveTab = 'search' | 'timeline' | 'workflows';
+type ActiveTab = 'search' | 'timeline' | 'workflows' | 'capabilities';
 let activeTab: ActiveTab = 'search';
 
 document.getElementById('tab-bar')!.addEventListener('click', (e) => {
@@ -42,6 +44,7 @@ function switchTab(tab: ActiveTab): void {
   searchTab.style.display = tab === 'search' ? '' : 'none';
   timelineTab.style.display = tab === 'timeline' ? '' : 'none';
   workflowsTab.style.display = tab === 'workflows' ? '' : 'none';
+  capabilitiesTab.style.display = tab === 'capabilities' ? '' : 'none';
   detailView.style.display = 'none';
   detailView.innerHTML = '';
 }
@@ -58,7 +61,9 @@ function openDetail(html: string, onBack: () => void): void {
     detailView.style.display = 'none';
     detailView.innerHTML = '';
     if (activeTab === 'search') searchTab.style.display = '';
-    else timelineTab.style.display = '';
+    else if (activeTab === 'timeline') timelineTab.style.display = '';
+    else if (activeTab === 'workflows') workflowsTab.style.display = '';
+    else if (activeTab === 'capabilities') capabilitiesTab.style.display = '';
     onBack();
   });
 
@@ -101,6 +106,7 @@ window.addEventListener('message', (event: MessageEvent) => {
     case 'workflowList':      renderWorkflowList(msg.payload); break;
     case 'workflowDetail':    renderWorkflowDetail(msg.payload.workflow, msg.payload.lastRun); break;
     case 'workflowProgress':  renderWorkflowProgress(msg.payload); break;
+    case 'capabilityReport':  renderCapabilityReport(msg.payload.snapshot); break;
     case 'loading':           showLoading(msg.payload.message); break;
     case 'error':             showError(msg.payload.message); break;
     case 'memoryRecorded':    showBanner(`Memory recorded: ${msg.payload.title}`); break;
@@ -378,6 +384,80 @@ function renderWorkflowProgress(run: WorkflowRun): void {
                     run.status === 'failed'    ? 'Workflow failed' :
                     `Running: stage ${run.currentStageIndex + 1}`;
   showBanner(statusMsg);
+}
+
+// ─── Capability renderer ─────────────────────────────────────────────────────
+
+function renderCapabilityReport(snapshot: CapabilitySnapshot): void {
+  switchTab('capabilities');
+
+  const { technologies, workflowMaturity: wm, memoryCount, capturedAt } = snapshot;
+  const date = new Date(capturedAt).toLocaleString();
+
+  const categoryOrder: CapabilitySnapshot['technologies'][number]['category'][] = [
+    'language', 'framework', 'tool', 'platform', 'service', 'pattern',
+  ];
+
+  const categoryLabel: Record<string, string> = {
+    language: 'Languages', framework: 'Frameworks', tool: 'Tools',
+    platform: 'Platforms', service: 'Services', pattern: 'Patterns',
+  };
+
+  const byCategory: Record<string, typeof technologies> = {};
+  for (const t of technologies) {
+    (byCategory[t.category] ??= []).push(t);
+  }
+
+  const summaryRows = [
+    ['Technologies tracked', String(technologies.length)],
+    ['Memories', String(memoryCount)],
+    ['Workflows', String(wm.totalWorkflows)],
+    ['Total runs', String(wm.totalRuns)],
+    ['Success rate', `${Math.round(wm.successRate * 100)}%`],
+  ];
+
+  const summaryHtml = `
+    <table style="width:100%;border-collapse:collapse;margin:6px 0">
+      ${summaryRows.map(([k, v]) =>
+        `<tr>
+          <td style="padding:3px 6px;border:1px solid var(--vscode-panel-border);font-size:11px;font-weight:600">${esc(k)}</td>
+          <td style="padding:3px 6px;border:1px solid var(--vscode-panel-border);font-size:11px">${esc(v)}</td>
+        </tr>`
+      ).join('')}
+    </table>`;
+
+  let techHtml = '';
+  for (const cat of categoryOrder) {
+    const entries = byCategory[cat];
+    if (!entries?.length) continue;
+    const sorted = [...entries].sort((a, b) => b.exposureCount - a.exposureCount);
+    techHtml += `<div class="section-title">${esc(categoryLabel[cat] ?? cat)}</div>`;
+    techHtml += sorted.map(t => {
+      const ws = t.workspaceIds.length;
+      const tagsText = t.tags.length ? ` <em style="color:var(--vscode-descriptionForeground);font-size:10px">${esc(t.tags.slice(0, 3).join(', '))}</em>` : '';
+      return `<div class="result-item">
+        <div class="result-title">${esc(t.name)}</div>
+        <div class="result-meta">${t.exposureCount} mention${t.exposureCount !== 1 ? 's' : ''} · ${ws} workspace${ws !== 1 ? 's' : ''}${tagsText}</div>
+      </div>`;
+    }).join('');
+  }
+
+  const maturityHtml = wm.totalWorkflows === 0
+    ? `<div class="empty-state" style="padding:8px;text-align:left">No workflows yet. Create playbooks to build maturity metrics.</div>`
+    : `<ul style="padding-left:16px;font-size:12px;line-height:1.8">
+        <li><strong>${wm.totalWorkflows}</strong> workflow${wm.totalWorkflows !== 1 ? 's' : ''} defined</li>
+        <li>Avg <strong>${wm.avgStagesPerWorkflow}</strong> stages, <strong>${wm.avgStepsPerWorkflow}</strong> steps per workflow</li>
+        ${wm.mostRunWorkflowName ? `<li>Most-run: <strong>${esc(wm.mostRunWorkflowName)}</strong></li>` : ''}
+      </ul>`;
+
+  capabilitiesContent.innerHTML = `
+    <div style="font-size:10px;color:var(--vscode-descriptionForeground);margin-bottom:6px">Updated ${esc(date)}</div>
+    <div class="section-title">Summary</div>
+    ${summaryHtml}
+    ${techHtml || '<div class="empty-state" style="padding:8px">No technologies detected yet.</div>'}
+    <div class="section-title">Workflow Maturity</div>
+    ${maturityHtml}
+  `;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

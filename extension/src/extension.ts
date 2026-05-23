@@ -28,12 +28,15 @@ import { registerCreateWorkflow } from './commands/createWorkflow';
 import { registerRunWorkflow } from './commands/runWorkflow';
 import { registerListWorkflows } from './commands/listWorkflows';
 import { registerRecordWorkflow } from './commands/recordWorkflow';
+import { CapabilityStore } from './storage/CapabilityStore';
+import { registerTrackCapabilities } from './commands/trackCapabilities';
+import { registerViewCapabilityReport } from './commands/viewCapabilityReport';
 
 let logger: Logger | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger = new Logger('PECS');
-  logger.info('Activating PECS v0.4.0');
+  logger.info('Activating PECS v0.5.0');
 
   // Storage
   const storageManager = new StorageManager(context);
@@ -67,6 +70,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const workflowStore = new WorkflowStore(storageManager);
   const workflowEngine = new WorkflowEngine(workflowStore, providerManager.provider);
 
+  // Phase 5 modules
+  const capabilityStore = new CapabilityStore(storageManager);
+
   // Webview panel
   const panel = new PecsPanel(context.extensionUri);
 
@@ -94,6 +100,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     registerRunWorkflow(workflowStore, workflowEngine, panel),
     registerListWorkflows(workflowStore, panel),
     registerRecordWorkflow(memoryStore, workflowStore, workspaceId),
+
+    // Phase 5 commands
+    registerTrackCapabilities(memoryStore, workflowStore, capabilityStore, summaryCache),
+    registerViewCapabilityReport(capabilityStore, panel),
   );
 
   // Route webview messages to extension handlers
@@ -199,7 +209,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-  logger.info('PECS v0.4.0 activated');
+  logger.info('PECS v0.5.0 activated');
 }
 
 export async function deactivate(): Promise<void> {

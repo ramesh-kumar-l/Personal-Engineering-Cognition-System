@@ -105,21 +105,65 @@ export const WorkflowSchema = z.object({
 });
 export type Workflow = z.infer<typeof WorkflowSchema>;
 
+// Phase 5 — Capability Tracking schemas
+export const TechnologyCategorySchema = z.enum([
+  'language', 'framework', 'tool', 'platform', 'pattern', 'service',
+]);
+export type TechnologyCategory = z.infer<typeof TechnologyCategorySchema>;
+
+export const TechnologyEntrySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  category: TechnologyCategorySchema,
+  firstSeenAt: z.string(),
+  lastSeenAt: z.string(),
+  exposureCount: z.number().int().nonnegative(),
+  workspaceIds: z.array(z.string()),
+  tags: z.array(z.string()).default([]),
+  notes: z.string().optional(),
+});
+export type TechnologyEntry = z.infer<typeof TechnologyEntrySchema>;
+
+export const WorkflowMaturitySchema = z.object({
+  totalWorkflows: z.number(),
+  totalRuns: z.number(),
+  successRate: z.number(),
+  avgStagesPerWorkflow: z.number(),
+  avgStepsPerWorkflow: z.number(),
+  mostRunWorkflowId: z.string().optional(),
+  mostRunWorkflowName: z.string().optional(),
+});
+export type WorkflowMaturity = z.infer<typeof WorkflowMaturitySchema>;
+
+export const CapabilitySnapshotSchema = z.object({
+  id: z.string(),
+  capturedAt: z.string(),
+  technologies: z.array(TechnologyEntrySchema),
+  workflowMaturity: WorkflowMaturitySchema,
+  memoryCount: z.number(),
+  workspaceIds: z.array(z.string()),
+});
+export type CapabilitySnapshot = z.infer<typeof CapabilitySnapshotSchema>;
+
 export const DatabaseSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   memories: z.array(MemorySchema),
   summaries: z.record(z.string(), RepoSummarySchema),
   workflows: z.array(WorkflowSchema).default([]),
+  technologies: z.array(TechnologyEntrySchema).default([]),
+  capabilitySnapshots: z.array(CapabilitySnapshotSchema).default([]),
   searchIndex: z.string().optional(),
 });
 export type Database = z.infer<typeof DatabaseSchema>;
 
 export function emptyDatabase(): Database {
   return {
-    version: 4,
+    version: 5,
     memories: [],
     summaries: {},
     workflows: [],
+    technologies: [],
+    capabilitySnapshots: [],
   };
 }
 
