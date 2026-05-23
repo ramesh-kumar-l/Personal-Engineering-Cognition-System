@@ -1,5 +1,8 @@
 import type { ExtensionToWebview, WebviewToExtension } from '../PecsPanel';
-import type { RepoSummary, SearchResult, TimelineEntry, MemoryDetail, StalenessReport } from '../../storage/schema';
+import type {
+  RepoSummary, SearchResult, TimelineEntry, MemoryDetail, StalenessReport,
+  WorkflowListItem, WorkflowRun, Workflow,
+} from '../../storage/schema';
 
 declare function acquireVsCodeApi(): {
   postMessage(msg: WebviewToExtension): void;
@@ -13,20 +16,24 @@ const vscode = acquireVsCodeApi();
 
 const searchTab = document.getElementById('search-tab')!;
 const timelineTab = document.getElementById('timeline-tab')!;
+const workflowsTab = document.getElementById('workflows-tab')!;
 const detailView = document.getElementById('detail-view')!;
 const app = document.getElementById('app')!;
 const timelineContent = document.getElementById('timeline-content')!;
+const workflowsContent = document.getElementById('workflows-content')!;
 const searchInput = document.getElementById('search-input') as HTMLInputElement;
 
 // ─── Tab navigation ──────────────────────────────────────────────────────────
 
-type ActiveTab = 'search' | 'timeline';
+type ActiveTab = 'search' | 'timeline' | 'workflows';
 let activeTab: ActiveTab = 'search';
 
 document.getElementById('tab-bar')!.addEventListener('click', (e) => {
   const btn = (e.target as Element).closest('[data-tab]') as HTMLElement | null;
   if (!btn) return;
-  switchTab(btn.dataset.tab as ActiveTab);
+  const tab = btn.dataset.tab as ActiveTab;
+  switchTab(tab);
+  if (tab === 'workflows') vscode.postMessage({ type: 'listWorkflows' });
 });
 
 function switchTab(tab: ActiveTab): void {
@@ -34,6 +41,7 @@ function switchTab(tab: ActiveTab): void {
   document.querySelectorAll('.tab').forEach(b => b.classList.toggle('active', (b as HTMLElement).dataset.tab === tab));
   searchTab.style.display = tab === 'search' ? '' : 'none';
   timelineTab.style.display = tab === 'timeline' ? '' : 'none';
+  workflowsTab.style.display = tab === 'workflows' ? '' : 'none';
   detailView.style.display = 'none';
   detailView.innerHTML = '';
 }
@@ -85,15 +93,18 @@ searchInput.addEventListener('input', () => {
 window.addEventListener('message', (event: MessageEvent) => {
   const msg = event.data as ExtensionToWebview;
   switch (msg.type) {
-    case 'repoSummary':      renderSummary(msg.payload); break;
-    case 'searchResults':    renderResults(msg.payload); break;
-    case 'timeline':         renderTimeline(msg.payload); break;
-    case 'memoryDetail':     renderDetail(msg.payload); break;
-    case 'stalenessReport':  renderStalenessReport(msg.payload); break;
-    case 'loading':          showLoading(msg.payload.message); break;
-    case 'error':            showError(msg.payload.message); break;
-    case 'memoryRecorded':   showBanner(`Memory recorded: ${msg.payload.title}`); break;
-    case 'memoryLinked':     showBanner(`Linked: ${msg.payload.sourceTitle} ↔ ${msg.payload.targetTitle}`); break;
+    case 'repoSummary':       renderSummary(msg.payload); break;
+    case 'searchResults':     renderResults(msg.payload); break;
+    case 'timeline':          renderTimeline(msg.payload); break;
+    case 'memoryDetail':      renderDetail(msg.payload); break;
+    case 'stalenessReport':   renderStalenessReport(msg.payload); break;
+    case 'workflowList':      renderWorkflowList(msg.payload); break;
+    case 'workflowDetail':    renderWorkflowDetail(msg.payload.workflow, msg.payload.lastRun); break;
+    case 'workflowProgress':  renderWorkflowProgress(msg.payload); break;
+    case 'loading':           showLoading(msg.payload.message); break;
+    case 'error':             showError(msg.payload.message); break;
+    case 'memoryRecorded':    showBanner(`Memory recorded: ${msg.payload.title}`); break;
+    case 'memoryLinked':      showBanner(`Linked: ${msg.payload.sourceTitle} ↔ ${msg.payload.targetTitle}`); break;
   }
 });
 
@@ -269,6 +280,104 @@ function renderStalenessReport(report: StalenessReport): void {
       vscode.postMessage({ type: 'openMemoryDetail', id });
     });
   });
+}
+
+// ─── Workflow renderers ───────────────────────────────────────────────────────
+
+function renderWorkflowList(items: WorkflowListItem[]): void {
+  switchTab('workflows');
+  if (items.length === 0) {
+    workflowsContent.innerHTML = `
+      <div class="empty-state">
+        No playbooks yet.<br>
+        Use <strong>PECS: Create Workflow</strong> or <strong>PECS: Record Workflow</strong>.
+      </div>`;
+    return;
+  }
+
+  const html = items.map(w => {
+    const statusHtml = w.lastRunStatus
+      ? ` <span class="run-status ${esc(w.lastRunStatus)}">${esc(w.lastRunStatus)}</span>` : '';
+    return `
+    <div class="result-item" data-workflow-id="${esc(w.id)}">
+      <div class="result-title">${esc(w.name)}${statusHtml}</div>
+      <div class="result-excerpt">${esc(w.description)}</div>
+      <div class="result-meta">
+        ${w.stageCount} stage${w.stageCount !== 1 ? 's' : ''} ·
+        ${w.stepCount} step${w.stepCount !== 1 ? 's' : ''} ·
+        ${w.runCount} run${w.runCount !== 1 ? 's' : ''}
+        ${w.lastRunAt ? '· ' + new Date(w.lastRunAt).toLocaleDateString() : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  workflowsContent.innerHTML = `<div class="section-title">${items.length} Playbook${items.length !== 1 ? 's' : ''}</div>${html}`;
+
+  workflowsContent.querySelectorAll('[data-workflow-id]').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = (item as HTMLElement).dataset.workflowId!;
+      vscode.postMessage({ type: 'openWorkflowDetail', id });
+    });
+  });
+}
+
+function renderWorkflowDetail(workflow: Workflow, lastRun?: WorkflowRun): void {
+  const stagesHtml = workflow.stages.map((stage, si) => {
+    const isActive = lastRun && lastRun.currentStageIndex === si && lastRun.status === 'running';
+    const stepsHtml = stage.steps.map(step => {
+      const result = lastRun?.stepResults.find(r => r.stepId === step.id);
+      const icon = result
+        ? ({ completed: '✓', failed: '✗', skipped: '—', running: '…', pending: '○' } as Record<string, string>)[result.status] ?? '○'
+        : '○';
+      return `
+        <div class="step-item${result ? ' ' + esc(result.status) : ''}">
+          <span class="step-status">${icon}</span>
+          <div>
+            <div class="step-name">${esc(step.name)}</div>
+            <div class="step-desc">${esc(step.description.slice(0, 80))}${step.description.length > 80 ? '…' : ''}</div>
+            ${result?.output ? `<div class="step-output">${esc(result.output.slice(0, 120))}${result.output.length > 120 ? '…' : ''}</div>` : ''}
+            ${result?.error ? `<div class="step-output" style="color:var(--vscode-errorForeground)">${esc(result.error)}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="stage-item${isActive ? ' active' : ''}">
+        <div class="stage-name">${esc(stage.name)}</div>
+        ${stepsHtml}
+      </div>`;
+  }).join('');
+
+  const runStatus = lastRun ? `<span class="run-status ${esc(lastRun.status)}">${esc(lastRun.status)}</span>` : '';
+  const tagsHtml = workflow.tags.length
+    ? workflow.tags.map(t => `<span class="badge badge-note">${esc(t)}</span>`).join(' ') : '';
+
+  const html = `
+    <button class="back-btn">← Playbooks</button>
+    <div style="margin-bottom:4px">
+      <strong>${esc(workflow.name)}</strong> ${runStatus}
+    </div>
+    ${workflow.description ? `<div class="detail-content" style="white-space:normal">${esc(workflow.description)}</div>` : ''}
+    ${tagsHtml ? `<div style="margin:4px 0">${tagsHtml}</div>` : ''}
+    <div class="section-title">Stages</div>
+    ${stagesHtml}
+    <div class="result-meta" style="margin-top:8px">
+      ${workflow.runs.length} run${workflow.runs.length !== 1 ? 's' : ''} ·
+      Created ${new Date(workflow.createdAt).toLocaleDateString()}
+    </div>
+  `;
+
+  openDetail(html, () => {
+    vscode.postMessage({ type: 'listWorkflows' });
+  });
+}
+
+function renderWorkflowProgress(run: WorkflowRun): void {
+  const statusMsg = run.status === 'completed' ? 'Workflow completed' :
+                    run.status === 'cancelled' ? 'Workflow cancelled' :
+                    run.status === 'failed'    ? 'Workflow failed' :
+                    `Running: stage ${run.currentStageIndex + 1}`;
+  showBanner(statusMsg);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

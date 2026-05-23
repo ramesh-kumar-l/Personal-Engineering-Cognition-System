@@ -2,7 +2,7 @@
   "name": "pecs",
   "displayName": "PECS – Personal Engineering Cognition System",
   "description": "AI-native repo understanding, engineering memory, and semantic search",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "pecs-dev",
   "private": true,
   "engines": {
@@ -169,6 +169,22 @@
       {
         "command": "pecs.crossWorkspaceSearch",
         "title": "PECS: Search All Workspaces"
+      },
+      {
+        "command": "pecs.createWorkflow",
+        "title": "PECS: Create Workflow"
+      },
+      {
+        "command": "pecs.runWorkflow",
+        "title": "PECS: Run Workflow"
+      },
+      {
+        "command": "pecs.listWorkflows",
+        "title": "PECS: List Workflows"
+      },
+      {
+        "command": "pecs.recordWorkflow",
+        "title": "PECS: Record Workflow from Memories"
       }
     ],
     "viewsContainers": {

@@ -1,6 +1,9 @@
 import * as vscode from 'vscode';
 import { generateNonce } from '../utils/config';
-import type { RepoSummary, SearchResult, TimelineEntry, MemoryDetail, StalenessReport } from '../storage/schema';
+import type {
+  RepoSummary, SearchResult, TimelineEntry, MemoryDetail, StalenessReport,
+  WorkflowListItem, WorkflowRun,
+} from '../storage/schema';
 
 export type ExtensionToWebview =
   | { type: 'repoSummary'; payload: RepoSummary }
@@ -8,6 +11,9 @@ export type ExtensionToWebview =
   | { type: 'timeline'; payload: TimelineEntry[] }
   | { type: 'memoryDetail'; payload: MemoryDetail }
   | { type: 'stalenessReport'; payload: StalenessReport }
+  | { type: 'workflowList'; payload: WorkflowListItem[] }
+  | { type: 'workflowDetail'; payload: import('../storage/schema').WorkflowDetail }
+  | { type: 'workflowProgress'; payload: WorkflowRun }
   | { type: 'loading'; payload: { message: string } }
   | { type: 'error'; payload: { message: string } }
   | { type: 'memoryRecorded'; payload: { title: string } }
@@ -17,6 +23,8 @@ export type WebviewToExtension =
   | { type: 'search'; query: string }
   | { type: 'openMemoryDetail'; id: string }
   | { type: 'linkFromDetail'; sourceId: string }
+  | { type: 'listWorkflows' }
+  | { type: 'openWorkflowDetail'; id: string }
   | { type: 'ready' };
 
 type MessageHandler = (msg: WebviewToExtension) => void;
@@ -279,12 +287,69 @@ export class PecsPanel implements vscode.WebviewViewProvider {
     .stale-counter.fresh  .count { color: #66bb6a; }
     .stale-counter.stale  .count { color: #ef9a9a; }
     .stale-counter.unknown .count { color: #9e9e9e; }
+
+    /* Workflow styles */
+    .run-status {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 1px 5px;
+      border-radius: 8px;
+    }
+    .run-status.completed  { background: #1e4a2e; color: #66bb6a; }
+    .run-status.running    { background: #1e3a5f; color: #64b5f6; }
+    .run-status.cancelled  { background: #3a3a1e; color: #fff176; }
+    .run-status.failed     { background: #4a1e1e; color: #ef9a9a; }
+    .run-status.paused     { background: #3b2e5a; color: #ba68c8; }
+    .run-status.pending    { background: var(--vscode-badge-background); color: var(--vscode-badge-foreground); }
+    .stage-item {
+      margin: 6px 0;
+      border-left: 2px solid var(--vscode-panel-border);
+      padding-left: 8px;
+    }
+    .stage-item.active { border-left-color: #64b5f6; }
+    .stage-name {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--vscode-descriptionForeground);
+      margin-bottom: 3px;
+    }
+    .step-item {
+      display: flex;
+      gap: 6px;
+      align-items: flex-start;
+      padding: 3px 0;
+    }
+    .step-status {
+      font-size: 11px;
+      min-width: 12px;
+      color: var(--vscode-descriptionForeground);
+      flex-shrink: 0;
+    }
+    .step-item.completed .step-status { color: #66bb6a; }
+    .step-item.failed    .step-status { color: #ef9a9a; }
+    .step-item.skipped   .step-status { color: #9e9e9e; }
+    .step-name { font-size: 11px; font-weight: 500; }
+    .step-desc { font-size: 10px; color: var(--vscode-descriptionForeground); margin-top: 1px; }
+    .step-output {
+      font-size: 10px;
+      color: var(--vscode-descriptionForeground);
+      font-style: italic;
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
   </style>
 </head>
 <body>
   <div id="tab-bar">
     <button class="tab active" data-tab="search">Search</button>
     <button class="tab" data-tab="timeline">Timeline</button>
+    <button class="tab" data-tab="workflows">Playbooks</button>
   </div>
 
   <div id="search-tab">
@@ -301,6 +366,12 @@ export class PecsPanel implements vscode.WebviewViewProvider {
   <div id="timeline-tab" style="display:none">
     <div id="timeline-content">
       <div class="empty-state">Run <strong>PECS: View Memory Timeline</strong> to load.</div>
+    </div>
+  </div>
+
+  <div id="workflows-tab" style="display:none">
+    <div id="workflows-content">
+      <div class="empty-state">Run <strong>PECS: List Workflows</strong> to load playbooks.</div>
     </div>
   </div>
 

@@ -22,9 +22,12 @@ export class StorageManager {
       const result = DatabaseSchema.safeParse(parsed);
       if (result.success) {
         this.db = result.data;
-        if (this.db.version === 1 || this.db.version === 2) {
-          // Migrate v1/v2 → v3: all Phase 3 additions are optional fields, just bump version
-          (this.db as { version: number }).version = 3;
+        if (this.db.version === 1 || this.db.version === 2 || this.db.version === 3) {
+          // Migrate v1/v2/v3 → v4: add workflows array (Phase 4 addition)
+          if (!('workflows' in this.db)) {
+            (this.db as { workflows: unknown[] }).workflows = [];
+          }
+          (this.db as { version: number }).version = 4;
           this.scheduleFlush();
         }
         return this.db;

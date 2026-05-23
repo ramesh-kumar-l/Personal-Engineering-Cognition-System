@@ -49,21 +49,97 @@ export const SearchResultSchema = z.object({
 });
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 
+// Phase 4 — Workflow Intelligence schemas
+export const WorkflowStepSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: z.enum(['ai', 'manual', 'command']),
+  prompt: z.string().optional(),
+  commandId: z.string().optional(),
+  requiresApproval: z.boolean().default(false),
+});
+export type WorkflowStep = z.infer<typeof WorkflowStepSchema>;
+
+export const WorkflowStageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  steps: z.array(WorkflowStepSchema),
+  requiresApproval: z.boolean().default(false),
+});
+export type WorkflowStage = z.infer<typeof WorkflowStageSchema>;
+
+export const WorkflowStepResultSchema = z.object({
+  stepId: z.string(),
+  status: z.enum(['pending', 'running', 'completed', 'failed', 'skipped']),
+  output: z.string().optional(),
+  error: z.string().optional(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+});
+export type WorkflowStepResult = z.infer<typeof WorkflowStepResultSchema>;
+
+export const WorkflowRunSchema = z.object({
+  id: z.string(),
+  workflowId: z.string(),
+  status: z.enum(['pending', 'running', 'paused', 'completed', 'failed', 'cancelled']),
+  currentStageIndex: z.number().default(0),
+  stepResults: z.array(WorkflowStepResultSchema).default([]),
+  context: z.record(z.string(), z.string()).default({}),
+  startedAt: z.string(),
+  completedAt: z.string().optional(),
+});
+export type WorkflowRun = z.infer<typeof WorkflowRunSchema>;
+
+export const WorkflowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()).default([]),
+  stages: z.array(WorkflowStageSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  runs: z.array(WorkflowRunSchema).default([]),
+  recordedFromMemoryIds: z.array(z.string()).optional(),
+});
+export type Workflow = z.infer<typeof WorkflowSchema>;
+
 export const DatabaseSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]),
   memories: z.array(MemorySchema),
   summaries: z.record(z.string(), RepoSummarySchema),
+  workflows: z.array(WorkflowSchema).default([]),
   searchIndex: z.string().optional(),
 });
 export type Database = z.infer<typeof DatabaseSchema>;
 
 export function emptyDatabase(): Database {
   return {
-    version: 3,
+    version: 4,
     memories: [],
     summaries: {},
+    workflows: [],
   };
 }
+
+// Phase 4 view types
+export type WorkflowListItem = {
+  id: string;
+  name: string;
+  description: string;
+  tags: string[];
+  stageCount: number;
+  stepCount: number;
+  runCount: number;
+  lastRunAt?: string;
+  lastRunStatus?: WorkflowRun['status'];
+};
+
+export type WorkflowDetail = {
+  workflow: Workflow;
+  lastRun?: WorkflowRun;
+};
 
 // Phase 2 view types
 export type TimelineEntry = {

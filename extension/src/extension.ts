@@ -22,12 +22,18 @@ import { registerLinkMemory } from './commands/linkMemory';
 import { registerViewTimeline } from './commands/viewTimeline';
 import { registerCheckStaleness } from './commands/checkStaleness';
 import { registerCrossWorkspaceSearch } from './commands/crossWorkspaceSearch';
+import { WorkflowStore } from './storage/WorkflowStore';
+import { WorkflowEngine } from './workflow/WorkflowEngine';
+import { registerCreateWorkflow } from './commands/createWorkflow';
+import { registerRunWorkflow } from './commands/runWorkflow';
+import { registerListWorkflows } from './commands/listWorkflows';
+import { registerRecordWorkflow } from './commands/recordWorkflow';
 
 let logger: Logger | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger = new Logger('PECS');
-  logger.info('Activating PECS v0.3.0');
+  logger.info('Activating PECS v0.4.0');
 
   // Storage
   const storageManager = new StorageManager(context);
@@ -57,6 +63,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const provenanceTracker = new ProvenanceTracker();
   const stalenessDetector = new StalenessDetector();
 
+  // Phase 4 modules
+  const workflowStore = new WorkflowStore(storageManager);
+  const workflowEngine = new WorkflowEngine(workflowStore, providerManager.provider);
+
   // Webview panel
   const panel = new PecsPanel(context.extensionUri);
 
@@ -78,6 +88,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
     // Phase 3 commands
     registerCrossWorkspaceSearch(searchEngine, panel),
+
+    // Phase 4 commands
+    registerCreateWorkflow(workflowStore),
+    registerRunWorkflow(workflowStore, workflowEngine, panel),
+    registerListWorkflows(workflowStore, panel),
+    registerRecordWorkflow(memoryStore, workflowStore, workspaceId),
   );
 
   // Route webview messages to extension handlers
@@ -103,6 +119,32 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
           })),
         },
       });
+    }
+
+    if (msg.type === 'listWorkflows') {
+      const workflows = await workflowStore.getAll();
+      const items = workflows.map(w => {
+        const lastRun = w.runs.length > 0 ? w.runs[w.runs.length - 1] : undefined;
+        return {
+          id: w.id,
+          name: w.name,
+          description: w.description,
+          tags: w.tags,
+          stageCount: w.stages.length,
+          stepCount: w.stages.reduce((acc, s) => acc + s.steps.length, 0),
+          runCount: w.runs.length,
+          lastRunAt: lastRun?.startedAt,
+          lastRunStatus: lastRun?.status,
+        };
+      });
+      panel.postMessage({ type: 'workflowList', payload: items });
+    }
+
+    if (msg.type === 'openWorkflowDetail') {
+      const workflow = await workflowStore.getById(msg.id);
+      if (!workflow) return;
+      const lastRun = workflow.runs.length > 0 ? workflow.runs[workflow.runs.length - 1] : undefined;
+      panel.postMessage({ type: 'workflowDetail', payload: { workflow, lastRun } });
     }
 
     if (msg.type === 'linkFromDetail') {
@@ -157,7 +199,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     })
   );
 
-  logger.info('PECS v0.3.0 activated');
+  logger.info('PECS v0.4.0 activated');
 }
 
 export async function deactivate(): Promise<void> {
