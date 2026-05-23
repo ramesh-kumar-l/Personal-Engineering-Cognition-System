@@ -26,7 +26,13 @@ export interface AIProvider {
   readonly name: string;
   complete(options: AICompletionOptions): Promise<AICompletionResult>;
   completeStream(options: AICompletionOptions): AsyncGenerator<string>;
-  embed?(text: string): Promise<AIEmbeddingResult>;
+  embed?(text: string, options?: { inputType?: 'query' | 'document' }): Promise<AIEmbeddingResult>;
+  isAvailable(): Promise<boolean>;
+}
+
+export interface EmbeddingProvider {
+  readonly name: string;
+  embed(text: string, options?: { inputType?: 'query' | 'document' }): Promise<AIEmbeddingResult>;
   isAvailable(): Promise<boolean>;
 }
 

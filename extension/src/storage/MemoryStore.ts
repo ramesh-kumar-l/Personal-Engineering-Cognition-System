@@ -26,6 +26,11 @@ export class MemoryStore {
     return db.memories.filter(m => m.workspaceId === workspaceId);
   }
 
+  async getAllWorkspaces(): Promise<Memory[]> {
+    const db = await this.storage.get();
+    return db.memories;
+  }
+
   async getById(id: string): Promise<Memory | undefined> {
     const db = await this.storage.get();
     return db.memories.find(m => m.id === id);

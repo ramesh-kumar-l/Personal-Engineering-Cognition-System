@@ -68,7 +68,7 @@ export class OllamaProvider implements AIProvider {
     }
   }
 
-  async embed(text: string): Promise<AIEmbeddingResult> {
+  async embed(text: string, _options?: { inputType?: 'query' | 'document' }): Promise<AIEmbeddingResult> {
     try {
       const response = await this.client.embeddings({
         model: this.config.embeddingModel,

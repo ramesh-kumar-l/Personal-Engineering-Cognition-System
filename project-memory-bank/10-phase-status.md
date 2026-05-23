@@ -1,5 +1,30 @@
 # Phase Status
 
+## Phase 3 — Semantic Retrieval + HNSW (Advanced Search)
+
+**Completed:** 2026-05-23
+**Status:** Done ✓
+
+### Deliverables
+- [x] `EmbeddingProvider` interface in `AIProvider.ts` (separate from `AIProvider`)
+- [x] `HNSWIndex` — pure-TypeScript HNSW with binary min/max heaps, O(log n) ANN search
+- [x] `VoyageProvider` — Voyage AI REST embedding provider (voyage-3-lite / voyage-3 / voyage-code-3)
+- [x] `EmbeddingService` — orchestrates HNSW init from stored embeddings, embed-and-index, query embedding, workspace-filtered search
+- [x] Schema v3: `workspaceId` added to `SearchResultSchema`; `DatabaseSchema` version bumped to accept 1/2/3
+- [x] `StorageManager` v2→v3 migration (zero-downtime, all fields optional)
+- [x] `MemoryStore.getAllWorkspaces()` — returns all memories across workspaces
+- [x] `SearchEngine` refactored to use `EmbeddingService`; added `queryAllWorkspaces()`
+- [x] `Ranker` updated: includes `workspaceId` in results; configurable `halfLifeDays` via `RankOptions`
+- [x] `ProviderFactory.getEmbeddingProvider()` — Voyage > provider.embed > null priority chain
+- [x] `pecs.crossWorkspaceSearch` command — input box → search all workspaces → sidebar
+- [x] `pecs.voyage.apiKey` / `pecs.voyage.model` / `pecs.search.temporalHalfLifeDays` settings
+- [x] Webview: cross-workspace results show italic workspace name chip; header shows "· all workspaces"
+- [x] 14 new unit tests (HNSWIndex 8, EmbeddingService 6)
+- [x] Build passes (dist/extension.js 1.1MB, dist/webview.js 12.1KB)
+- [x] 67/67 tests pass
+
+---
+
 ## Phase 2 — Persistent Engineering Memory (Enhanced)
 
 **Completed:** 2026-05-23

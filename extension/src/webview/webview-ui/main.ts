@@ -119,23 +119,38 @@ function renderSummary(summary: RepoSummary): void {
   `;
 }
 
+function workspaceName(wsId: string): string {
+  // Extract last path segment from workspace URI (e.g. file:///E:/projects/myapp → myapp)
+  const decoded = decodeURIComponent(wsId).replace(/\\/g, '/');
+  const parts = decoded.split('/').filter(Boolean);
+  return parts[parts.length - 1] ?? wsId;
+}
+
 function renderResults(results: SearchResult[]): void {
   if (results.length === 0) {
     app.innerHTML = '<div class="empty-state">No memories found for this query.</div>';
     return;
   }
 
-  const items = results.map(r => `
+  // Detect cross-workspace results (more than one unique workspaceId)
+  const workspaceIds = new Set(results.map(r => r.workspaceId).filter(Boolean));
+  const isCrossWorkspace = workspaceIds.size > 1;
+
+  const items = results.map(r => {
+    const wsChip = isCrossWorkspace && r.workspaceId
+      ? `<span class="badge badge-note" title="${esc(r.workspaceId)}" style="font-style:italic">${esc(workspaceName(r.workspaceId))}</span>`
+      : '';
+    return `
     <div class="result-item" data-id="${esc(r.id)}">
       <div class="result-title">
-        <span class="badge badge-${r.memoryType ?? 'note'}">${r.memoryType ?? 'note'}</span>${esc(r.title)}
+        <span class="badge badge-${r.memoryType ?? 'note'}">${r.memoryType ?? 'note'}</span>${wsChip}${esc(r.title)}
       </div>
       <div class="result-excerpt">${esc(r.excerpt)}</div>
       <div class="result-meta">score ${r.score.toFixed(2)} ${r.createdAt ? '· ' + new Date(r.createdAt).toLocaleDateString() : ''}</div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 
-  app.innerHTML = `<div class="section-title">${results.length} Result${results.length !== 1 ? 's' : ''}</div>${items}`;
+  app.innerHTML = `<div class="section-title">${results.length} Result${results.length !== 1 ? 's' : ''}${isCrossWorkspace ? ' · all workspaces' : ''}</div>${items}`;
 
   app.querySelectorAll('.result-item[data-id]').forEach(item => {
     item.addEventListener('click', () => {

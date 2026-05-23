@@ -5,6 +5,7 @@ import { StorageManager } from './storage/StorageManager';
 import { MemoryStore } from './storage/MemoryStore';
 import { SummaryCache } from './storage/SummaryCache';
 import { ProviderManager } from './providers/ProviderFactory';
+import { EmbeddingService } from './search/EmbeddingService';
 import { RepoScanner } from './scanner/RepoScanner';
 import { SearchEngine } from './search/SearchEngine';
 import { PecsPanel } from './webview/PecsPanel';
@@ -20,12 +21,13 @@ import { registerExportMemories } from './commands/exportMemories';
 import { registerLinkMemory } from './commands/linkMemory';
 import { registerViewTimeline } from './commands/viewTimeline';
 import { registerCheckStaleness } from './commands/checkStaleness';
+import { registerCrossWorkspaceSearch } from './commands/crossWorkspaceSearch';
 
 let logger: Logger | undefined;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   logger = new Logger('PECS');
-  logger.info('Activating PECS v0.2.0');
+  logger.info('Activating PECS v0.3.0');
 
   // Storage
   const storageManager = new StorageManager(context);
@@ -37,10 +39,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   // AI provider (lazy instantiation)
   const providerManager = new ProviderManager();
 
-  // Search engine
-  const searchEngine = new SearchEngine(memoryStore, providerManager.provider);
+  // Phase 3: embedding service wraps HNSW index + embedding provider
+  const embeddingService = new EmbeddingService(providerManager.getEmbeddingProvider());
 
-  // Index existing memories on startup
+  // Search engine — uses EmbeddingService for semantic search
+  const searchEngine = new SearchEngine(memoryStore, providerManager.provider, embeddingService);
+
+  // Index existing memories on startup (keyword + HNSW from stored embeddings)
   const workspaceId = getWorkspaceId();
   await searchEngine.reindex(workspaceId);
 
@@ -70,6 +75,9 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     registerLinkMemory(memoryStore, linker),
     registerViewTimeline(memoryStore, panel),
     registerCheckStaleness(memoryStore, stalenessDetector, panel),
+
+    // Phase 3 commands
+    registerCrossWorkspaceSearch(searchEngine, panel),
   );
 
   // Route webview messages to extension handlers
@@ -98,7 +106,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
 
     if (msg.type === 'linkFromDetail') {
-      // Re-fire the link command pre-populated with the source memory
       const memories = await memoryStore.getAll(workspaceId);
       const source = await memoryStore.getById(msg.sourceId);
       if (!source || memories.length < 2) return;
@@ -140,17 +147,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }
   });
 
-  // Invalidate provider on config changes
+  // Invalidate provider on config changes (also re-creates embedding provider)
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('pecs')) {
         providerManager.invalidate();
-        logger?.info('Configuration changed — AI provider invalidated');
+        logger?.info('Configuration changed — providers invalidated');
       }
     })
   );
 
-  logger.info('PECS v0.2.0 activated');
+  logger.info('PECS v0.3.0 activated');
 }
 
 export async function deactivate(): Promise<void> {

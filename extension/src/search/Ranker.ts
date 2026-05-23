@@ -1,6 +1,6 @@
 import type { Memory, SearchResult } from '../storage/schema';
 import type { KeywordHit } from './KeywordIndex';
-import type { SemanticHit } from './EmbeddingIndex';
+import type { SemanticHit } from './HNSWIndex';
 
 const WEIGHTS = {
   keyword: 0.50,
@@ -8,15 +8,19 @@ const WEIGHTS = {
   temporal: 0.15,
 };
 
-const TEMPORAL_HALF_LIFE_DAYS = 30;
+export type RankOptions = {
+  halfLifeDays?: number;
+};
 
 export class Ranker {
   rank(
     memories: Memory[],
     keywordHits: KeywordHit[],
     semanticHits: SemanticHit[],
-    maxResults: number
+    maxResults: number,
+    options: RankOptions = {}
   ): SearchResult[] {
+    const halfLifeDays = options.halfLifeDays ?? 30;
     const memoryMap = new Map(memories.map(m => [m.id, m]));
 
     const kwMap = new Map(keywordHits.map(h => [h.id, h.score]));
@@ -34,7 +38,7 @@ export class Ranker {
 
       const keywordScore = (kwMap.get(id) ?? 0) / maxKw;
       const semanticScore = semMap.size > 0 ? (semMap.get(id) ?? 0) / maxSem : undefined;
-      const temporalScore = this.temporalScore(memory.createdAt);
+      const temporalScore = this.temporalScore(memory.createdAt, halfLifeDays);
 
       const score =
         WEIGHTS.keyword * keywordScore +
@@ -53,6 +57,7 @@ export class Ranker {
         temporalScore,
         createdAt: memory.createdAt,
         memoryType: memory.type,
+        workspaceId: memory.workspaceId,
       });
     }
 
@@ -60,11 +65,9 @@ export class Ranker {
     return results.slice(0, maxResults);
   }
 
-  private temporalScore(createdAt: string): number {
-    const ageMs = Date.now() - new Date(createdAt).getTime();
-    const ageDays = ageMs / (1000 * 60 * 60 * 24);
-    // Exponential decay: score = 2^(-age/half_life)
-    return Math.pow(2, -ageDays / TEMPORAL_HALF_LIFE_DAYS);
+  private temporalScore(createdAt: string, halfLifeDays: number): number {
+    const ageDays = (Date.now() - new Date(createdAt).getTime()) / 86400000;
+    return Math.pow(2, -ageDays / halfLifeDays);
   }
 
   private makeExcerpt(content: string, maxLen = 200): string {

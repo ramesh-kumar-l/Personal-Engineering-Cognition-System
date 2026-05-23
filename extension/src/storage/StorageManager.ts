@@ -22,9 +22,9 @@ export class StorageManager {
       const result = DatabaseSchema.safeParse(parsed);
       if (result.success) {
         this.db = result.data;
-        if (this.db.version === 1) {
-          // Migrate v1 → v2: bump version, new fields are all optional so data is already valid
-          (this.db as { version: number }).version = 2;
+        if (this.db.version === 1 || this.db.version === 2) {
+          // Migrate v1/v2 → v3: all Phase 3 additions are optional fields, just bump version
+          (this.db as { version: number }).version = 3;
           this.scheduleFlush();
         }
         return this.db;

@@ -33,12 +33,12 @@
 - [x] Memory provenance tracking (git commit hash captured on record)
 - [x] Conflict/staleness detection (file-existence + line-diff via git)
 
-## Phase 3 — Semantic Retrieval + Hybrid Search (Advanced)
+## Phase 3 — Semantic Retrieval + Hybrid Search (Advanced) ✓ COMPLETE
 
-- Dedicated embedding model integration (Voyage AI, local models)
-- HNSW index for scalable semantic search
-- Cross-workspace memory retrieval
-- Temporal decay and recency weighting
+- [x] Dedicated embedding model integration (Voyage AI, local models via Ollama/OpenAI-compat)
+- [x] HNSW index for scalable semantic search (pure TypeScript, no native modules)
+- [x] Cross-workspace memory retrieval (`pecs.crossWorkspaceSearch`)
+- [x] Temporal decay and recency weighting (configurable `temporalHalfLifeDays`)
 
 ## Phase 4 — Workflow Intelligence
 

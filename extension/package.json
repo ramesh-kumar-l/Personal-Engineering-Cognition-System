@@ -2,7 +2,7 @@
   "name": "pecs",
   "displayName": "PECS – Personal Engineering Cognition System",
   "description": "AI-native repo understanding, engineering memory, and semantic search",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "publisher": "pecs-dev",
   "private": true,
   "engines": {
@@ -105,6 +105,27 @@
           "type": "number",
           "default": 10,
           "description": "Maximum number of search results to return"
+        },
+        "pecs.search.temporalHalfLifeDays": {
+          "type": "number",
+          "default": 30,
+          "description": "Recency decay half-life in days. Memories older than this score ~50% on temporal component. Lower = stronger recency bias."
+        },
+        "pecs.voyage.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Voyage AI API key for high-quality text embeddings. When set, Voyage is used for semantic search instead of the main AI provider. Get a key at voyageai.com."
+        },
+        "pecs.voyage.model": {
+          "type": "string",
+          "enum": ["voyage-3-lite", "voyage-3", "voyage-code-3"],
+          "enumDescriptions": [
+            "Fastest and most cost-effective (recommended default)",
+            "Higher quality general-purpose embeddings",
+            "Optimized for code and technical content"
+          ],
+          "default": "voyage-3-lite",
+          "description": "Voyage AI embedding model to use"
         }
       }
     },
@@ -144,6 +165,10 @@
       {
         "command": "pecs.checkStaleness",
         "title": "PECS: Check Memory Staleness"
+      },
+      {
+        "command": "pecs.crossWorkspaceSearch",
+        "title": "PECS: Search All Workspaces"
       }
     ],
     "viewsContainers": {

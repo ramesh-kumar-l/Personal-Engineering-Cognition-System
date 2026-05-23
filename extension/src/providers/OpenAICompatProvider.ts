@@ -99,7 +99,7 @@ export class OpenAICompatProvider implements AIProvider {
     }
   }
 
-  async embed(text: string): Promise<AIEmbeddingResult> {
+  async embed(text: string, _options?: { inputType?: 'query' | 'document' }): Promise<AIEmbeddingResult> {
     const body = JSON.stringify({ model: this.config.model, input: text });
 
     const response = await this.fetchWithTimeout(`${this.config.baseUrl}/embeddings`, {

@@ -45,11 +45,12 @@ export const SearchResultSchema = z.object({
   temporalScore: z.number(),
   createdAt: z.string().datetime().optional(),
   memoryType: z.enum(['debug', 'decision', 'learning', 'incident', 'note']).optional(),
+  workspaceId: z.string().optional(),
 });
 export type SearchResult = z.infer<typeof SearchResultSchema>;
 
 export const DatabaseSchema = z.object({
-  version: z.union([z.literal(1), z.literal(2)]),
+  version: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   memories: z.array(MemorySchema),
   summaries: z.record(z.string(), RepoSummarySchema),
   searchIndex: z.string().optional(),
@@ -58,7 +59,7 @@ export type Database = z.infer<typeof DatabaseSchema>;
 
 export function emptyDatabase(): Database {
   return {
-    version: 2,
+    version: 3,
     memories: [],
     summaries: {},
   };

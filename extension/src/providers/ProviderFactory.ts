@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
-import type { AIProvider } from './AIProvider';
+import type { AIProvider, EmbeddingProvider } from './AIProvider';
 import { ClaudeProvider } from './ClaudeProvider';
 import { OpenAICompatProvider } from './OpenAICompatProvider';
 import { OllamaProvider } from './OllamaProvider';
+import { VoyageProvider } from './VoyageProvider';
 
 function createProvider(): AIProvider {
   const cfg = vscode.workspace.getConfiguration('pecs');
@@ -31,17 +32,47 @@ function createProvider(): AIProvider {
   }
 }
 
+function createEmbeddingProvider(mainProvider: AIProvider): EmbeddingProvider | null {
+  const cfg = vscode.workspace.getConfiguration('pecs');
+  const voyageApiKey = cfg.get<string>('voyage.apiKey', '');
+
+  // Voyage takes priority — dedicated embedding model for highest quality
+  if (voyageApiKey) {
+    const model = cfg.get<string>('voyage.model', 'voyage-3-lite');
+    return new VoyageProvider({ apiKey: voyageApiKey, model });
+  }
+
+  // Fall back to the main provider if it supports embeddings (Ollama, OpenAI-compat)
+  if (mainProvider.embed) {
+    return {
+      name: mainProvider.name,
+      embed: (text, opts) => mainProvider.embed!(text, opts),
+      isAvailable: () => mainProvider.isAvailable(),
+    };
+  }
+
+  return null;
+}
+
 export class ProviderManager {
-  private current: AIProvider | null = null;
+  private chatProvider: AIProvider | null = null;
+  private embeddingProviderCache: EmbeddingProvider | null | undefined = undefined;
 
   get provider(): AIProvider {
-    if (!this.current) {
-      this.current = createProvider();
+    if (!this.chatProvider) {
+      this.chatProvider = createProvider();
     }
-    return this.current;
+    return this.chatProvider;
+  }
+
+  getEmbeddingProvider(): EmbeddingProvider | null {
+    if (this.embeddingProviderCache !== undefined) return this.embeddingProviderCache;
+    this.embeddingProviderCache = createEmbeddingProvider(this.provider);
+    return this.embeddingProviderCache;
   }
 
   invalidate(): void {
-    this.current = null;
+    this.chatProvider = null;
+    this.embeddingProviderCache = undefined;
   }
 }
