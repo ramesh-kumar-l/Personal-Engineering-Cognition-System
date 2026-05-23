@@ -40,13 +40,13 @@
 - [x] Cross-workspace memory retrieval (`pecs.crossWorkspaceSearch`)
 - [x] Temporal decay and recency weighting (configurable `temporalHalfLifeDays`)
 
-## Phase 4 — Workflow Intelligence
+## Phase 4 — Workflow Intelligence ✓ COMPLETE
 
-- Reusable engineering playbooks
-- Deterministic workflow stages
-- AI-assisted execution steps
-- Approval checkpoints
-- Workflow recording from session history
+- [x] Reusable engineering playbooks (WorkflowStore CRUD)
+- [x] Deterministic workflow stages (WorkflowEngine stage/step execution)
+- [x] AI-assisted execution steps (prompt interpolation + AI provider call)
+- [x] Approval checkpoints (injected ApprovalGate, stage + step level)
+- [x] Workflow recording from session history (WorkflowRecorder from memories)
 
 ## Phase 5 — Capability Tracking
 
