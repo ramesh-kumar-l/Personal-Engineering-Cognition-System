@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "./out",
+    "rootDir": "./src",
+    "sourceMap": true,
+    "declaration": true,
+    "experimentalDecorators": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "test", "dist", "out"]
+}

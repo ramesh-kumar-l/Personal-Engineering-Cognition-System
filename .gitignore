@@ -1,0 +1,14 @@
+node_modules/
+out/
+dist/
+*.vsix
+.env
+*.log
+.DS_Store
+
+extension/node_modules/
+extension/out/
+extension/dist/
+extension/*.vsix
+
+project-memory-bank/.cache/

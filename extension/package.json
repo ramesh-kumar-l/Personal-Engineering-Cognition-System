@@ -1,0 +1,192 @@
+{
+  "name": "pecs",
+  "displayName": "PECS – Personal Engineering Cognition System",
+  "description": "AI-native repo understanding, engineering memory, and semantic search",
+  "version": "0.1.0",
+  "publisher": "pecs-dev",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "icon": "assets/icon.png",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "PECS",
+      "properties": {
+        "pecs.aiProvider": {
+          "type": "string",
+          "enum": ["claude", "openai-compat", "ollama"],
+          "enumDescriptions": [
+            "Anthropic Claude (requires API key)",
+            "OpenAI-compatible API (covers OpenAI, LM Studio, Groq, Jan, llama.cpp server)",
+            "Ollama (local LLMs, supports embeddings)"
+          ],
+          "default": "claude",
+          "description": "AI provider to use for repo analysis and memory operations"
+        },
+        "pecs.claude.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "Anthropic API key. Falls back to ANTHROPIC_API_KEY environment variable."
+        },
+        "pecs.claude.model": {
+          "type": "string",
+          "default": "claude-sonnet-4-5",
+          "description": "Claude model to use"
+        },
+        "pecs.openaiCompat.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:1234/v1",
+          "description": "Base URL for OpenAI-compatible API (e.g. LM Studio: http://localhost:1234/v1)"
+        },
+        "pecs.openaiCompat.apiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for OpenAI-compatible provider (leave empty for local servers)"
+        },
+        "pecs.openaiCompat.model": {
+          "type": "string",
+          "default": "gpt-4o",
+          "description": "Model name for OpenAI-compatible provider"
+        },
+        "pecs.ollama.baseUrl": {
+          "type": "string",
+          "default": "http://localhost:11434",
+          "description": "Ollama server URL"
+        },
+        "pecs.ollama.model": {
+          "type": "string",
+          "default": "llama3.2",
+          "description": "Ollama model for completions"
+        },
+        "pecs.ollama.embeddingModel": {
+          "type": "string",
+          "default": "nomic-embed-text",
+          "description": "Ollama model for embeddings (used for semantic search)"
+        },
+        "pecs.scanner.maxFilesPerScan": {
+          "type": "number",
+          "default": 500,
+          "description": "Maximum number of files to include in a repo scan"
+        },
+        "pecs.scanner.maxFileSizeKb": {
+          "type": "number",
+          "default": 100,
+          "description": "Maximum file size in KB to include in a repo scan"
+        },
+        "pecs.scanner.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/out/**",
+            "**/build/**",
+            "**/.next/**",
+            "**/__pycache__/**",
+            "**/*.min.js",
+            "**/*.map"
+          ],
+          "description": "Glob patterns to exclude from repo scanning"
+        },
+        "pecs.search.embeddingsEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable semantic search using embeddings. Requires a provider that supports embeddings (Ollama or OpenAI-compat)."
+        },
+        "pecs.search.maxResults": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum number of search results to return"
+        }
+      }
+    },
+    "commands": [
+      {
+        "command": "pecs.summarizeRepo",
+        "title": "PECS: Summarize Repository Architecture"
+      },
+      {
+        "command": "pecs.searchMemory",
+        "title": "PECS: Search Engineering Memory"
+      },
+      {
+        "command": "pecs.generateOnboarding",
+        "title": "PECS: Generate Onboarding Document"
+      },
+      {
+        "command": "pecs.recordMemory",
+        "title": "PECS: Record Engineering Memory"
+      },
+      {
+        "command": "pecs.clearCache",
+        "title": "PECS: Clear Repo Summary Cache"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pecs-sidebar",
+          "title": "PECS",
+          "icon": "$(circuit-board)"
+        }
+      ]
+    },
+    "views": {
+      "pecs-sidebar": [
+        {
+          "type": "webview",
+          "id": "pecs.sidebarView",
+          "name": "PECS"
+        }
+      ]
+    },
+    "menus": {
+      "editor/context": [
+        {
+          "command": "pecs.recordMemory",
+          "when": "editorHasSelection",
+          "group": "pecs"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build:prod",
+    "build": "node esbuild.mjs",
+    "build:prod": "node esbuild.mjs --production",
+    "watch": "node esbuild.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src --ext .ts",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "ollama": "^0.6.3",
+    "minisearch": "^7.1.2",
+    "zod": "^3.23.8",
+    "ignore": "^6.0.2",
+    "glob": "^11.0.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.90.0",
+    "@types/node": "^22.0.0",
+    "@types/uuid": "^10.0.0",
+    "typescript": "^5.8.3",
+    "esbuild": "^0.25.4",
+    "@vscode/vsce": "^3.4.0",
+    "vitest": "^3.1.4",
+    "eslint": "^9.26.0",
+    "@typescript-eslint/eslint-plugin": "^8.32.1",
+    "@typescript-eslint/parser": "^8.32.1"
+  }
+}
