@@ -1,0 +1,22 @@
+{
+  "name": "pecs-cli",
+  "version": "0.7.0",
+  "description": "PECS CLI — headless engineering cognition interface",
+  "private": true,
+  "bin": { "pecs": "dist/index.js" },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "build:prod": "node esbuild.mjs --production",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.4",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4"
+  }
+}

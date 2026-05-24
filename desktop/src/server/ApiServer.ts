@@ -8,6 +8,9 @@ import { createStatusRouter } from './routes/status';
 import { createMemoriesRouter } from './routes/memories';
 import { createCapabilitiesRouter } from './routes/capabilities';
 import { createSyncRouter } from './routes/sync';
+import { createOrchestrationRouter } from './routes/orchestration';
+import { createSynthesisRouter } from './routes/synthesis';
+import { createTeamRouter } from './routes/team';
 
 export type ApiDependencies = {
   memoryStore: MemoryStore;
@@ -41,6 +44,9 @@ export function createApiServer(deps: ApiDependencies): Express {
   app.use('/api/v1/memories', createMemoriesRouter(deps));
   app.use('/api/v1/capabilities', createCapabilitiesRouter(deps));
   app.use('/api/v1/sync', createSyncRouter(deps));
+  app.use('/api/v1/orchestration', createOrchestrationRouter(deps));
+  app.use('/api/v1/synthesis', createSynthesisRouter(deps));
+  app.use('/api/v1/team', createTeamRouter(deps));
 
   // Catch-all 404
   app.use((_req, res) => res.status(404).json({ error: 'Not found' }));
