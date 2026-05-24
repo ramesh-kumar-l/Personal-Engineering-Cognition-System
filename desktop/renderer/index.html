@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy"
+        content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:">
+  <title>PECS</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="app-logo">⬡ PECS</span>
+    <span class="app-subtitle" id="status-line">Personal Engineering Cognition System</span>
+  </header>
+
+  <nav class="tab-bar">
+    <button class="tab active" data-tab="search">Search</button>
+    <button class="tab" data-tab="record">Record</button>
+    <button class="tab" data-tab="capabilities">Capabilities</button>
+  </nav>
+
+  <main>
+    <!-- Search Tab -->
+    <section id="tab-search" class="tab-content active">
+      <div class="search-bar">
+        <input id="search-input" type="text" placeholder="Search engineering memories…" autocomplete="off">
+        <button id="search-btn">Search</button>
+      </div>
+      <div id="search-results" class="results-list"></div>
+    </section>
+
+    <!-- Record Tab -->
+    <section id="tab-record" class="tab-content">
+      <form id="record-form" class="record-form">
+        <label>Title
+          <input id="rec-title" type="text" placeholder="What did you learn or decide?" required>
+        </label>
+        <label>Type
+          <select id="rec-type">
+            <option value="note">Note</option>
+            <option value="decision">Decision</option>
+            <option value="learning">Learning</option>
+            <option value="debug">Debug</option>
+            <option value="incident">Incident</option>
+          </select>
+        </label>
+        <label>Content
+          <textarea id="rec-content" rows="6" placeholder="Describe the context, reasoning, or outcome…" required></textarea>
+        </label>
+        <label>Tags (comma-separated)
+          <input id="rec-tags" type="text" placeholder="backend, performance, auth">
+        </label>
+        <label>Workspace ID
+          <input id="rec-workspace" type="text" placeholder="desktop" value="desktop">
+        </label>
+        <button type="submit">Save Memory</button>
+        <p id="record-status" class="status-msg"></p>
+      </form>
+    </section>
+
+    <!-- Capabilities Tab -->
+    <section id="tab-capabilities" class="tab-content">
+      <button id="load-caps-btn">Load Capability Report</button>
+      <div id="capabilities-content" class="capability-report"></div>
+    </section>
+  </main>
+
+  <script src="../dist/renderer.js"></script>
+</body>
+</html>
