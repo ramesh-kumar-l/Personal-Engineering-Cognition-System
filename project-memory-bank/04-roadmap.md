@@ -48,12 +48,13 @@
 - [x] Approval checkpoints (injected ApprovalGate, stage + step level)
 - [x] Workflow recording from session history (WorkflowRecorder from memories)
 
-## Phase 5 — Capability Tracking
+## Phase 5 — Capability Tracking ✓ COMPLETE
 
-- Technology exposure tracking
-- Workflow maturity metrics
-- Architecture competency mapping
-- Local-only, user-controlled, privacy-preserving
+- [x] Technology exposure tracking (TechnologyTracker, 50+ tech registry, 6 categories)
+- [x] Workflow maturity metrics (WorkflowMetricsCalculator — success rate, avg stages/steps, most-run)
+- [x] Capability snapshot storage (CapabilityStore, ring-buffer of 50 snapshots)
+- [x] Capability report (CapabilityReportBuilder — Markdown + webview Capabilities tab)
+- [x] Local-only, user-controlled, privacy-preserving
 
 ## Phase 6 — Desktop Cognition OS
 
