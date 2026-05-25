@@ -1,0 +1,14 @@
+# PECS has no Python runtime dependencies.
+#
+# This repository is a TypeScript/Node.js project made of:
+# - extension/ : VS Code extension
+# - desktop/   : Electron desktop app and local REST API
+# - cli/       : headless command-line client
+#
+# Install dependencies with npm inside each package directory:
+#   cd extension && npm install
+#   cd desktop && npm install
+#   cd cli && npm install
+#
+# This file exists only to make the dependency story explicit for tools or
+# reviewers that expect a Python requirements.txt in a GitHub repository.
